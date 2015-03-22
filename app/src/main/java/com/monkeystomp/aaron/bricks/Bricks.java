@@ -2,6 +2,7 @@ package com.monkeystomp.aaron.bricks;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -42,10 +43,28 @@ public class Bricks extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * This is called when the user presses the back button, home button, or a phonecall is received
+     */
     @Override
     public void onPause() {
-
+        mBricksView.setRunning(false);
         super.onPause();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // If a phone call is received and surface created isn't called,
+        // this will make sure that the running variable is set to true.
+        mBricksView.setRunning(true);
+        Log.v("$$$$onResume", "Program is resuming");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        Log.v("onStop", "Program is stopped");
     }
 
     @Override
