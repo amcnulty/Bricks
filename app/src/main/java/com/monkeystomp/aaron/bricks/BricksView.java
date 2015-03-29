@@ -11,6 +11,7 @@ import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
@@ -36,13 +37,38 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // Width and height of the surface.
     private int width, height;
 
-    private short anim = 0;
+    // Width and height of the paddle.
+    private static final int PADDLE_WIDTH = 75;
+    private static final int PADDLE_HEIGHT = 7;
 
+    // Bounds for the paddle x location.
+    private static final int PADDLE_LEFT_BOUND = 3;
+    private static final int PADDLE_RIGHT_BOUND = 403;
+
+    // Speed of animation.
+    private static final int PADDLE_SPEED_SEC = 170;
+
+    // States if the keys are pressed down.
+    private boolean goLeft = false;
+    private boolean goRight = false;
+
+    // Coordinates of the paddle.
+    private double paddleX;
+    private int paddleY;
+
+    // Color of the paddle.
+    private int paddleColor = 0xffffff;
+
+    // Used to keep track of loop intervals.
+    private long lastTime = 0;
+
+    // Allows for random elements in the game.
     private Random random;
 
+    // Bitmap of the game canvas.
     private Bitmap bitmap;
 
-    // Array of pixel data to be given to the bitmap
+    // Array of pixel data to be given to the bitmap.
     private int[] pixels;
 
     /**
@@ -53,31 +79,37 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     public BricksView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
-
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
         width = size.x;
         height = size.y;
-
+        paddleX = (width / 2) - 37;
+        paddleY = height - 170;
         pixels = new int[width * height];
-        setMyBackgroundColor(0xffff0000);
-
+        setMyBackgroundColor(0x000000);
         random = new Random();
-
         mSurfaceHolder = getHolder();
         mSurfaceHolder.addCallback(this);
-
         thread = new Thread(this, "Surface-View-Thread");
-
         setFocusable(true);
+        setFocusableInTouchMode(true);
     }
 
     private void setMyBackgroundColor(int color) {
         int len = pixels.length;
         for (int i = 0; i < len; i++) {
             pixels[i] = color;
+        }
+    }
+
+    private void drawPaddle() {
+        for (int y = 0; y < PADDLE_HEIGHT; y++) {
+            for (int x = 0; x < PADDLE_WIDTH; x++) {
+                int xa = (int)paddleX + x;
+                pixels[(xa) + (paddleY - 3 + y) * width] = 0xffff0000;
+            }
         }
     }
 
@@ -94,30 +126,19 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     @Override
     public void run() {
-        long lastTime = System.nanoTime();
         long timer = System.currentTimeMillis();
-        double ns = 1000000000.0 / 60.0;
-        double delta = 0.0;
         int frames = 0;
-        int updates = 0;
         Canvas c;
+        lastTime = System.currentTimeMillis();
         while(running) {
-            long now = System.nanoTime();
-            delta += (now - lastTime) / ns;
-            lastTime = now;
-            while (delta >= 1) {
-                update();
-                updates++;
-                delta--;
-            }
-            frames++;
+            update();
             c = mSurfaceHolder.lockCanvas();
+            frames++;
             render(c);
             mSurfaceHolder.unlockCanvasAndPost(c);
             if (System.currentTimeMillis() - timer >= 1000) {
                 timer = System.currentTimeMillis();
-                Log.v("________________run", "UPS: " + updates + "  |  FPS: " + frames + " Timer: " + timer);
-                updates = 0;
+                Log.v("________________run", "  |  FPS: " + frames + " PaddleX " + paddleX);
                 frames = 0;
             }
         }
@@ -128,13 +149,21 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      * The game's main update method.
      */
     private void update() {
-        if (anim > 1000) anim = 0;
-        else anim++;
-        if (anim >= 120) {
-            Log.v("__________update", "Randomizing background color");
-            setMyBackgroundColor(random.nextInt(Math.abs(0xffffff)));
-            anim = 0;
+        long now = System.currentTimeMillis();
+        if (now < lastTime) return;
+        else {
+            if (goLeft && paddleX > PADDLE_LEFT_BOUND){
+                double elapsed = (now - lastTime) / 1000.0;
+                paddleX -= PADDLE_SPEED_SEC * elapsed;
+            }
+            else if (goRight && paddleX < PADDLE_RIGHT_BOUND){
+                double elapsed = (now - lastTime) / 1000.0;
+                paddleX += PADDLE_SPEED_SEC * elapsed;
+            }
+            if (paddleX < PADDLE_LEFT_BOUND) paddleX = PADDLE_LEFT_BOUND;
+            else if (paddleX > PADDLE_RIGHT_BOUND) paddleX = PADDLE_RIGHT_BOUND;
         }
+        lastTime = now;
     }
 
     /**
@@ -144,15 +173,55 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     private void render(Canvas c) {
         if (bitmap == null) {
             Log.v("_____________render", "Bitmap is empty, creating new one");
-            bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         }
-
-        /*for (int i = 0; i < pixels.length; i++) {
-            pixels[i] = 0xff517EE0;
-        }*/
+        setMyBackgroundColor(0xff000000);
+        // draw the paddle
+        drawPaddle();
 
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
+    }
+
+    /**
+     * Standard override to get key-pressed events.
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent msg) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_S:
+                Log.v("___________onKeyDown", "S KEY DOWN");
+                return true;
+            case KeyEvent.KEYCODE_A:
+                goLeft = true;
+                return true;
+            case KeyEvent.KEYCODE_D:
+                goRight = true;
+                return true;
+            default:
+                return super.onKeyDown(keyCode, msg);
+
+        }
+    }
+
+    /**
+     * Standard override to get key-released events.
+     */
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent msg) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_S:
+                Log.v("___________onKeyDown", "S KEY UP");
+                return true;
+            case KeyEvent.KEYCODE_A:
+                goLeft = false;
+                return true;
+            case KeyEvent.KEYCODE_D:
+                goRight = false;
+                return true;
+            default:
+                return onKeyUp(keyCode, msg);
+        }
     }
     /*
      * Callback invoked when the Surface has been created and is ready to be
