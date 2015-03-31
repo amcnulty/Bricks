@@ -69,7 +69,10 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     private Bitmap bitmap;
 
     // Array of pixel data to be given to the bitmap.
-    private int[] pixels;
+    public int[] pixels;
+
+    // The only level in the game right now.
+    Level level;
 
     /**
      * Constructor for setting up the SurfaceView with the SurfaceHolder.
@@ -85,6 +88,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         display.getSize(size);
         width = size.x;
         height = size.y;
+        level = new Level(width, height);
         paddleX = (width / 2) - 37;
         paddleY = height - 170;
         pixels = new int[width * height];
@@ -109,6 +113,14 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             for (int x = 0; x < PADDLE_WIDTH; x++) {
                 int xa = (int)paddleX + x;
                 pixels[(xa) + (paddleY - 3 + y) * width] = 0xffff0000;
+            }
+        }
+    }
+
+    public void drawBlock(int x, int y, int color) {
+        for (int xx = 0; xx < Block.BLOCK_WIDTH; xx++) {
+            for (int yy = 0; yy < Block.BLOCK_HEIGHT; yy++) {
+                pixels[(x + xx) + (y + yy) * width] = color;
             }
         }
     }
@@ -138,7 +150,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             mSurfaceHolder.unlockCanvasAndPost(c);
             if (System.currentTimeMillis() - timer >= 1000) {
                 timer = System.currentTimeMillis();
-                Log.v("________________run", "  |  FPS: " + frames + " PaddleX " + paddleX);
+                Log.v("________________run", "  |  FPS: " + frames + " `PaddleX " + paddleX);
                 frames = 0;
             }
         }
@@ -178,6 +190,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         setMyBackgroundColor(0xff000000);
         // draw the paddle
         drawPaddle();
+        level.render(this);
 
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
