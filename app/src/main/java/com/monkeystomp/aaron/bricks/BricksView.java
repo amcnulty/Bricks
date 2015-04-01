@@ -37,27 +37,9 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // Width and height of the surface.
     private int width, height;
 
-    // Width and height of the paddle.
-    private static final int PADDLE_WIDTH = 75;
-    private static final int PADDLE_HEIGHT = 7;
-
-    // Bounds for the paddle x location.
-    private static final int PADDLE_LEFT_BOUND = 3;
-    private static final int PADDLE_RIGHT_BOUND = 403;
-
-    // Speed of animation.
-    private static final int PADDLE_SPEED_SEC = 170;
-
     // States if the keys are pressed down.
-    private boolean goLeft = false;
-    private boolean goRight = false;
-
-    // Coordinates of the paddle.
-    private double paddleX;
-    private int paddleY;
-
-    // Color of the paddle.
-    private int paddleColor = 0xffffff;
+    public boolean goLeft = false;
+    public boolean goRight = false;
 
     // Used to keep track of loop intervals.
     private long lastTime = 0;
@@ -74,6 +56,12 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // The only level in the game right now.
     Level level;
 
+    // The game's user controlled paddle.
+    Paddle paddle;
+
+    // The game ball.
+    Ball ball;
+
     /**
      * Constructor for setting up the SurfaceView with the SurfaceHolder.
      * Game thread gets instantiated here.
@@ -89,8 +77,8 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         width = size.x;
         height = size.y;
         level = new Level(width, height);
-        paddleX = (width / 2) - 37;
-        paddleY = height - 170;
+        paddle = new Paddle(width, height, this);
+        ball = new Ball(paddle);
         pixels = new int[width * height];
         setMyBackgroundColor(0x000000);
         random = new Random();
@@ -108,11 +96,25 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         }
     }
 
-    private void drawPaddle() {
-        for (int y = 0; y < PADDLE_HEIGHT; y++) {
-            for (int x = 0; x < PADDLE_WIDTH; x++) {
-                int xa = (int)paddleX + x;
-                pixels[(xa) + (paddleY - 3 + y) * width] = 0xffff0000;
+    public void drawPaddle(double paddleX, int paddleY, int paddleColor) {
+        for (int y = 0; y < Paddle.PADDLE_HEIGHT; y++) {
+            for (int x = 0; x < Paddle.PADDLE_WIDTH; x++) {
+                int xa = (int)paddleX - 37 + x;
+                pixels[(xa) + (paddleY + y) * width] = paddleColor;
+            }
+        }
+    }
+
+    public void drawBall(double ballX, double ballY, double radius, int ballColor) {
+        // Scan through a square around the center of the ball.
+        // Only render a distance <= the radius.
+        for (double yp = ballY - radius; yp <= ballY + radius; yp++) {
+            for (double xp = ballX - radius; xp <= ballX + radius; xp++) {
+                double yLeg = Math.abs(yp - ballY);
+                double xLeg = Math.abs(xp - ballX);
+                if (Math.sqrt(Math.pow(xLeg, 2.0) + Math.pow(yLeg, 2.0)) <= radius) {
+                    pixels[(int)xp + (int)yp * width] = ballColor;
+                }
             }
         }
     }
@@ -150,7 +152,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             mSurfaceHolder.unlockCanvasAndPost(c);
             if (System.currentTimeMillis() - timer >= 1000) {
                 timer = System.currentTimeMillis();
-                Log.v("________________run", "  |  FPS: " + frames + " `PaddleX " + paddleX);
+                Log.v("________________run", "  |  FPS: " + frames);
                 frames = 0;
             }
         }
@@ -161,21 +163,12 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      * The game's main update method.
      */
     private void update() {
-        long now = System.currentTimeMillis();
-        if (now < lastTime) return;
-        else {
-            if (goLeft && paddleX > PADDLE_LEFT_BOUND){
-                double elapsed = (now - lastTime) / 1000.0;
-                paddleX -= PADDLE_SPEED_SEC * elapsed;
-            }
-            else if (goRight && paddleX < PADDLE_RIGHT_BOUND){
-                double elapsed = (now - lastTime) / 1000.0;
-                paddleX += PADDLE_SPEED_SEC * elapsed;
-            }
-            if (paddleX < PADDLE_LEFT_BOUND) paddleX = PADDLE_LEFT_BOUND;
-            else if (paddleX > PADDLE_RIGHT_BOUND) paddleX = PADDLE_RIGHT_BOUND;
-        }
-        lastTime = now;
+        // Update the paddle.
+        paddle.update(lastTime);
+        // Update the ball.
+        ball.update();
+        // Recalculate lastTime variable.
+        lastTime = System.currentTimeMillis();
     }
 
     /**
@@ -188,10 +181,12 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         }
         setMyBackgroundColor(0xff000000);
-        // draw the paddle
-        drawPaddle();
+        // Draw the paddle.
+        paddle.render(this);
+        // Draw the level.
         level.render(this);
-
+        // Draw the ball.
+        ball.render(this);
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
     }
