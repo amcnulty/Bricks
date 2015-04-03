@@ -7,11 +7,13 @@ package com.monkeystomp.aaron.bricks;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
@@ -33,6 +35,15 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // Used to allow the game loop.
     // When set false, game thread will reach end of run method and die.
     private boolean running = false;
+
+    // Various states the game can be in.
+    private static final int NEW_GAME = 1;
+    private static final int GAME_IN_PLAY = 2;
+    private static final int GAME_PAUSED = 3;
+    private static final int GAME_LOST = 4;
+
+    // The gameState variable is the switch control for updates and renders.
+    private int gameState;
 
     // Width and height of the surface.
     private int width, height;
@@ -62,6 +73,15 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // The game ball.
     Ball ball;
 
+    // The touch screen buttons at the bottom.
+    Controls controls;
+
+    // Paint object for the strings to be displayed.
+    Paint paint;
+
+    // The game score.
+    int score = 0;
+
     /**
      * Constructor for setting up the SurfaceView with the SurfaceHolder.
      * Game thread gets instantiated here.
@@ -76,9 +96,10 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         display.getSize(size);
         width = size.x;
         height = size.y;
+        controls = new Controls(width, height);
         level = new Level(width, height);
         paddle = new Paddle(width, height, this);
-        ball = new Ball(paddle);
+        ball = new Ball(paddle, level);
         pixels = new int[width * height];
         setMyBackgroundColor(0x000000);
         random = new Random();
@@ -87,6 +108,10 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         thread = new Thread(this, "Surface-View-Thread");
         setFocusable(true);
         setFocusableInTouchMode(true);
+        paint = new Paint();
+        paint.setTextSize(40);
+        paint.setColor(0xff888888);
+        gameState = NEW_GAME;
     }
 
     private void setMyBackgroundColor(int color) {
@@ -127,6 +152,22 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         }
     }
 
+    public void drawControls(int topY) {
+        // A horizontal line.
+        for (int y = topY; y < topY + 8; y++) {
+            for (int x = 0; x < width; x++) {
+                pixels[x + y * width] = 0xff00ff00;
+            }
+        }
+        // A vertical line.
+        int middle = width / 2;
+        for (int y = topY; y < 678; y++) {
+            for (int x = middle - 3; x <= middle + 3; x++) {
+                pixels[x + y * width] = 0xff00ff00;
+            }
+        }
+    }
+
     /**
      *
      * @param b true if you want the gameLoop to continue false if you want it to stop
@@ -163,10 +204,20 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      * The game's main update method.
      */
     private void update() {
-        // Update the paddle.
-        paddle.update(lastTime);
-        // Update the ball.
-        ball.update();
+        switch (gameState) {
+            case NEW_GAME:
+                paddle.update(lastTime);
+                ball.followPaddle();
+                if (leftButton) goLeft = true;
+                if (rightButton) goRight = true;
+                break;
+            case GAME_IN_PLAY:
+                paddle.update(lastTime);
+                ball.update(lastTime);
+                if (leftButton) goLeft = true;
+                if (rightButton) goRight = true;
+                break;
+        }
         // Recalculate lastTime variable.
         lastTime = System.currentTimeMillis();
     }
@@ -177,18 +228,30 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     private void render(Canvas c) {
         if (bitmap == null) {
-            Log.v("_____________render", "Bitmap is empty, creating new one");
+            //Log.v("_____________render", "Bitmap is empty, creating new one");
             bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         }
-        setMyBackgroundColor(0xff000000);
-        // Draw the paddle.
-        paddle.render(this);
-        // Draw the level.
-        level.render(this);
-        // Draw the ball.
-        ball.render(this);
+        switch (gameState) {
+            case NEW_GAME:
+                setMyBackgroundColor(0xff000000);
+                paddle.render(this);
+                level.render(this);
+                ball.render(this);
+                controls.render(this);
+                break;
+            case GAME_IN_PLAY:
+                setMyBackgroundColor(0xff000000);
+                paddle.render(this);
+                level.render(this);
+                ball.render(this);
+                controls.render(this);
+                break;
+        }
+
+
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
+        c.drawText("Score: " + score, 10, 40, paint);
     }
 
     /**
@@ -206,6 +269,12 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             case KeyEvent.KEYCODE_D:
                 goRight = true;
                 return true;
+            case KeyEvent.KEYCODE_SPACE:
+                if (gameState == NEW_GAME) {
+                    gameState = GAME_IN_PLAY;
+                    ball.launchBall();
+                    return true;
+                }
             default:
                 return super.onKeyDown(keyCode, msg);
 
@@ -262,6 +331,33 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+    }
+
+    boolean leftButton = false;
+    boolean rightButton = false;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        switch (gameState) {
+            case NEW_GAME:
+                if (e.getAction() == MotionEvent.ACTION_DOWN && e.getX() < (width / 2) - 3 && e.getY() > 547) {
+                    leftButton = true;
+                    rightButton = false;
+                }
+                if (e.getAction() == MotionEvent.ACTION_DOWN && e.getX() > (width / 2) + 3 && e.getY() > 547) {
+                    leftButton = false;
+                    rightButton = true;
+                }
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+                    leftButton = false;
+                    rightButton = false;
+                    goRight = false;
+                    goLeft = false;
+                }
+                return true;
+            default:
+                return super.onTouchEvent(e);
+        }
     }
 
 }

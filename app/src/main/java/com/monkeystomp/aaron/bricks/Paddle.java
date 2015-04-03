@@ -13,7 +13,7 @@ public class Paddle {
     private static final int PADDLE_LEFT_BOUND = 40;
     private static final int PADDLE_RIGHT_BOUND = 440;
 
-    // Speed of animation.
+    // Speed of paddle animation.
     private static final int PADDLE_SPEED_SEC = 170;
     
     // Paddle coordinates.
@@ -34,10 +34,10 @@ public class Paddle {
         this.height = height;
         this.view = view;
         x = (width / 2);
-        y = height - 170;
+        y = height - 270;
     }
     
-    public void update(double lastTime) {
+    public void update(long lastTime) {
         long now = System.currentTimeMillis();
         if (now < lastTime) return;
         else {

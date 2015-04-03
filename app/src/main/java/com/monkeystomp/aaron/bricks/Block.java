@@ -14,7 +14,26 @@ public class Block {
 
     public static final int BLOCK_INSET = 10;
 
+    // Various block types.
+    public static final int PLAIN_BLOCK = 1;
+    public static final int GOLD_BLOCK = 2;
+    public static final int SILVER_BLOCK = 3;
+
+    // Corresponding block colors.
+    public static final int PLAIN_BLOCK_COLOR = 0xff888888;
+    public static final int GOLD_BLOCK_COLOR = 0xffD4AF37;
+    public static final int SILVER_BLOCK_COLOR = 0xffE6E8FA;
+
+    // Corresponding block point values.
+    public static final int PLAIN_BLOCK_POINT_VALUE = 100;
+    public static final int GOLD_BLOCK_POINT_VALUE = 500;
+    public static final int SILVER_BLOCK_POINT_VALUE = 250;
+
+    // Color of this block.
     public int blockColor;
+
+    // Point value of this block.
+    public int blockPointValue;
 
     /**
      *
@@ -28,10 +47,34 @@ public class Block {
         blockColor = 0xff888888;
     }
 
-    public Block(int x, int y, int blockColor) {
+//    public Block(int x, int y, int blockColor) {
+//        this.x = x;
+//        this.y = y;
+//        this.blockColor = blockColor;
+//    }
+
+    public Block(int x, int y, int blockType) {
         this.x = x;
         this.y = y;
-        this.blockColor = blockColor;
+        switch(blockType) {
+            case PLAIN_BLOCK:
+                blockColor = PLAIN_BLOCK_COLOR;
+                blockPointValue = PLAIN_BLOCK_POINT_VALUE;
+                break;
+            case GOLD_BLOCK:
+                blockColor = GOLD_BLOCK_COLOR;
+                blockPointValue = GOLD_BLOCK_POINT_VALUE;
+                break;
+            case SILVER_BLOCK:
+                blockColor = SILVER_BLOCK_COLOR;
+                blockPointValue = SILVER_BLOCK_POINT_VALUE;
+                break;
+        }
+    }
+
+    public boolean blockHere(double x, double y) {
+        if (x >= this.x && x <= this.x + BLOCK_WIDTH && y >= this.y && y <= this.y + BLOCK_HEIGHT) return true;
+        return false;
     }
 
     public int getX() {
