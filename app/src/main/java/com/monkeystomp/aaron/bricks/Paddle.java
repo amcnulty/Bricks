@@ -15,6 +15,10 @@ public class Paddle {
 
     // Speed of paddle animation.
     private static final int PADDLE_SPEED_SEC = 170;
+
+    // Used to keep track of time.
+    long now;
+    double elapsed;
     
     // Paddle coordinates.
     public double x;
@@ -38,15 +42,15 @@ public class Paddle {
     }
     
     public void update(long lastTime) {
-        long now = System.currentTimeMillis();
+        now = System.currentTimeMillis();
         if (now < lastTime) return;
         else {
             if (view.goLeft && x > PADDLE_LEFT_BOUND){
-                double elapsed = (now - lastTime) / 1000.0;
+                elapsed = (now - lastTime) / 1000.0;
                 x -= PADDLE_SPEED_SEC * elapsed;
             }
             else if (view.goRight && x < PADDLE_RIGHT_BOUND){
-                double elapsed = (now - lastTime) / 1000.0;
+                elapsed = (now - lastTime) / 1000.0;
                 x += PADDLE_SPEED_SEC * elapsed;
             }
             if (x < PADDLE_LEFT_BOUND) x = PADDLE_LEFT_BOUND;

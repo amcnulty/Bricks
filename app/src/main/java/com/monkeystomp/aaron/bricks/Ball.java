@@ -22,6 +22,9 @@ public class Ball {
     // The radius of the ball.
     private static final double BALL_RADIUS = 15.0;
 
+    // Radius to check for collisions.
+    private static final double BALL_COLLISION_RADIUS = 16.5;
+
     // Speed of ball animation.
     private static final int BALL_SPEED_SEC = 200;
 
@@ -35,6 +38,12 @@ public class Ball {
 
     // Handle for the level. The ball needs to know where the blocks are.
     Level level;
+
+    // Several variables used in the move method.
+    double point = 0.0;
+    double elapsed;
+    double nextX, nextY;
+    long now;
 
     public Ball(Paddle paddle, Level level) {
         this.paddle = paddle;
@@ -51,43 +60,77 @@ public class Ball {
 
     public void launchBall() {
         dir = 80 + (20 * random.nextDouble());
+        dir = 104;
+        Log.v("_________launchBall", "Ball is launching in direction " + dir);
     }
 
     public void move(double dir, long lastTime, double now) {
-        double point = 0.0;
-        double newDir = 0.0;
-        double newPoint = 0.0;
-        double elapsed = (now - lastTime) / 1000.0;
-        // Calculate the new x and y based on dir and lastTime.
-        double newX = Math.cos(dir) * BALL_SPEED_SEC * elapsed;
-        double newY = Math.sin(dir) * BALL_SPEED_SEC * elapsed;
+//        double newDir = 0.0;
+//        double newPoint = 0.0;
+        elapsed = (now - lastTime) / 1000.0;
+        // Calculate the new x and y based on direction and lastTime.
+        nextX = x + (Math.cos(Math.toRadians(dir)) * BALL_SPEED_SEC * elapsed);
+        nextY = y - (Math.sin(Math.toRadians(dir)) * BALL_SPEED_SEC * elapsed);
         // Check for collisions on the leading half of the circle.
         // ex. dir = 45 check between 45 - 90 degrees and 45 + 90 degrees.
-        for (int step = - 90; step <= 90; step += 15) {
-            if (level.blockHere(newX + (BALL_RADIUS * Math.cos(dir + step)), newY + (BALL_RADIUS * Math.sin(dir + step)))) {
-                collision = true;
-                point = dir + step;
-                break;
+        for (int i = 0; i < 4; i++) {
+            switch (i) {
+                case 0:
+                    if (level.blockHere(nextX + BALL_COLLISION_RADIUS, nextY)) {
+                        collision = true;
+                        point = 0.0;
+                    }
+                    break;
+                case 1:
+                    if (level.blockHere(nextX, nextY - BALL_COLLISION_RADIUS)) {
+                        collision = true;
+                        point = 90.0;
+                    }
+                    break;
+                case 2:
+                    if (level.blockHere(nextX - BALL_COLLISION_RADIUS, nextY)) {
+                        collision = true;
+                        point = 180.0;
+                    }
+                    break;
+                case 3:
+                    if (level.blockHere(nextX, nextY + BALL_COLLISION_RADIUS)) {
+                        collision = true;
+                        point = 270.0;
+                    }
+                    break;
             }
         }
+        if (!collision) {
+            for (int step = -90; step <= 90; step += 15) {
+                if (level.blockHere(nextX + (BALL_COLLISION_RADIUS * Math.cos(Math.toRadians(dir + step))), nextY - (BALL_COLLISION_RADIUS * Math.sin(Math.toRadians(dir + step))))) {
+                    collision = true;
+                    point = dir + step;
+                    break;
+                }
+            }
+        }
+            Log.v("_________move", "Collision: " + collision + " direction: " + dir + " Ball X: " + x + " Ball Y: " + y);
         if (collision) {
-            newPoint = point + 180;
-            if (newPoint >= 360) newPoint -= 360;
-            newDir = dir + 180;
-            if (newDir >= 360) newDir -= 360;
-            this.dir = (newPoint - newDir) + newPoint;
+//            newPoint = point + 180;
+//            if (newPoint >= 360) newPoint -= 360;
+//            newDir = dir + 180;
+//            if (newDir >= 360) newDir -= 360;
+//            this.dir = (newPoint - newDir) + newPoint;
+            Log.v("_________move", " dir: " + dir + " this.dir: " + this.dir + " point: " + point);
+            this.dir = (point - dir) + (point + 180);
             if (this.dir >= 360) this.dir -= 360;
             else if (this.dir < 0) this.dir += 360;
             collision = false;
         }
         else {
-            x += newX;
-            y += newY;
+            x = nextX;
+            y = nextY;
         }
     }
 
     public void update(long lastTime) {
-        long now = System.currentTimeMillis();
+        now = System.currentTimeMillis();
         if (now < lastTime) return;
         else {
             move(dir, lastTime, now);

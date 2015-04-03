@@ -28,6 +28,13 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // Thread used to make the game loop and decide what is to be drawn to the Canvas
     private Thread thread;
 
+    // Variables used for the game loop timer.
+    private long timer;
+    private int frames;
+
+    // Variables used for drawing the ball.
+    double xLeg, yLeg;
+
     // Object variable for SurfaceHolder class.
     // Used to lock canvas and unlockCanvasAndPost
     private SurfaceHolder mSurfaceHolder;
@@ -135,8 +142,8 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         // Only render a distance <= the radius.
         for (double yp = ballY - radius; yp <= ballY + radius; yp++) {
             for (double xp = ballX - radius; xp <= ballX + radius; xp++) {
-                double yLeg = Math.abs(yp - ballY);
-                double xLeg = Math.abs(xp - ballX);
+                yLeg = Math.abs(yp - ballY);
+                xLeg = Math.abs(xp - ballX);
                 if (Math.sqrt(Math.pow(xLeg, 2.0) + Math.pow(yLeg, 2.0)) <= radius) {
                     pixels[(int)xp + (int)yp * width] = ballColor;
                 }
@@ -181,8 +188,8 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     @Override
     public void run() {
-        long timer = System.currentTimeMillis();
-        int frames = 0;
+        timer = System.currentTimeMillis();
+        frames = 0;
         Canvas c;
         lastTime = System.currentTimeMillis();
         while(running) {
@@ -269,12 +276,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             case KeyEvent.KEYCODE_D:
                 goRight = true;
                 return true;
-            case KeyEvent.KEYCODE_SPACE:
-                if (gameState == NEW_GAME) {
-                    gameState = GAME_IN_PLAY;
-                    ball.launchBall();
-                    return true;
-                }
             default:
                 return super.onKeyDown(keyCode, msg);
 
@@ -296,8 +297,14 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             case KeyEvent.KEYCODE_D:
                 goRight = false;
                 return true;
+            case KeyEvent.KEYCODE_SPACE:
+                if (gameState == NEW_GAME) {
+                    gameState = GAME_IN_PLAY;
+                    ball.launchBall();
+                }
+                return true;
             default:
-                return onKeyUp(keyCode, msg);
+                return false;
         }
     }
     /*
@@ -339,6 +346,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         switch (gameState) {
+            case GAME_IN_PLAY:
             case NEW_GAME:
                 if (e.getAction() == MotionEvent.ACTION_DOWN && e.getX() < (width / 2) - 3 && e.getY() > 547) {
                     leftButton = true;
