@@ -21,6 +21,27 @@ public class Controls {
 
     }
 
+    public boolean isRightButton(int x, int y) {
+        if (y > topY && x > (width / 2) + (width / 8) + 3) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isLeftButton(int x, int y) {
+        if (y > topY && x < (width / 2) - (width / 8) - 3) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isMiddleButton(int x, int y) {
+        if (y > topY && x > (width / 2) - (width / 8) + 3 && x < (width / 2) + (width / 8) - 3) {
+            return true;
+        }
+        return false;
+    }
+
     public void render(BricksView view) {
         view.drawControls(topY);
     }

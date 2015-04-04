@@ -30,18 +30,25 @@ public class Paddle {
     // Dimensions of the screen.
     private int width, height;
 
-    // Handle for BricksView
-    BricksView view;
+    // Level the paddle is on.
+    Level level;
     
-    public Paddle(int width, int height, BricksView view) {
+    public Paddle(int width, int height, Level level) {
         this.width = width;
         this.height = height;
-        this.view = view;
+        this.level = level;
         x = (width / 2);
         y = height - 270;
     }
+
+    public boolean paddleHere(double x, double y) {
+        if (x >= this.x - 37 && x <= this.x + 37 && y >= this.y) {
+            return true;
+        }
+        return false;
+    }
     
-    public void update(long lastTime) {
+    public void update(long lastTime, BricksView view) {
         now = System.currentTimeMillis();
         if (now < lastTime) return;
         else {

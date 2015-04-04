@@ -29,11 +29,17 @@ public class Block {
     public static final int GOLD_BLOCK_POINT_VALUE = 500;
     public static final int SILVER_BLOCK_POINT_VALUE = 250;
 
+    // True if broken false if not.
+    public boolean broken = false;
+
     // Color of this block.
     public int blockColor;
 
     // Point value of this block.
     public int blockPointValue;
+
+    // Handle to the Level it is associated with to send score information.
+    Level level;
 
     /**
      *
@@ -53,9 +59,10 @@ public class Block {
 //        this.blockColor = blockColor;
 //    }
 
-    public Block(int x, int y, int blockType) {
+    public Block(int x, int y, int blockType, Level level) {
         this.x = x;
         this.y = y;
+        this.level = level;
         switch(blockType) {
             case PLAIN_BLOCK:
                 blockColor = PLAIN_BLOCK_COLOR;
@@ -73,8 +80,16 @@ public class Block {
     }
 
     public boolean blockHere(double x, double y) {
-        if (x >= this.x && x <= this.x + BLOCK_WIDTH && y >= this.y && y <= this.y + BLOCK_HEIGHT) return true;
+        if (x >= this.x && x <= this.x + BLOCK_WIDTH && y >= this.y && y <= this.y + BLOCK_HEIGHT && !broken) {
+            broken = true;
+            level.increaseScore(blockPointValue);
+            return true;
+        }
         return false;
+    }
+
+    public boolean isBroken() {
+        return broken;
     }
 
     public int getX() {

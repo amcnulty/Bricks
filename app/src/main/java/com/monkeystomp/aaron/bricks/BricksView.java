@@ -48,6 +48,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     private static final int GAME_IN_PLAY = 2;
     private static final int GAME_PAUSED = 3;
     private static final int GAME_LOST = 4;
+    private static final int GAME_RESTARTING = 5;
 
     // The gameState variable is the switch control for updates and renders.
     private int gameState;
@@ -58,6 +59,21 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // States if the keys are pressed down.
     public boolean goLeft = false;
     public boolean goRight = false;
+
+    // Controls the movement of the paddle
+    boolean leftButton = false;
+    boolean rightButton = false;
+
+    // Color constants for the buttons.
+    private static final int DIRECTIONAL_BUTTON_COLOR_UP = 0xff0000ff;
+    private static final int DIRECTIONAL_BUTTON_COLOR_DOWN = 0xffff0000;
+    private static final int MIDDLE_BUTTON_COLOR_UP = 0xff00ff00;
+    private static final int MIDDLE_BUTTON_COLOR_DOWN = 0xffff0000;
+
+    // Color of the buttons.
+    int leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+    int rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+    int middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
 
     // Used to keep track of loop intervals.
     private long lastTime = 0;
@@ -84,7 +100,9 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     Controls controls;
 
     // Paint object for the strings to be displayed.
-    Paint paint;
+    Paint scoreTextPaint;
+    Paint buttonTextPaint;
+    Paint middleButtonTextPaint;
 
     // The game score.
     int score = 0;
@@ -104,9 +122,8 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         width = size.x;
         height = size.y;
         controls = new Controls(width, height);
-        level = new Level(width, height);
-        paddle = new Paddle(width, height, this);
-        ball = new Ball(paddle, level);
+        level = new Level(width, height, context, this);
+        ball = new Ball(level.paddle, level);
         pixels = new int[width * height];
         setMyBackgroundColor(0x000000);
         random = new Random();
@@ -115,9 +132,15 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         thread = new Thread(this, "Surface-View-Thread");
         setFocusable(true);
         setFocusableInTouchMode(true);
-        paint = new Paint();
-        paint.setTextSize(40);
-        paint.setColor(0xff888888);
+        scoreTextPaint = new Paint();
+        scoreTextPaint.setTextSize(40);
+        scoreTextPaint.setColor(0xff888888);
+        buttonTextPaint = new Paint();
+        buttonTextPaint.setColor(0xff000000);
+        buttonTextPaint.setTextSize(180);
+        middleButtonTextPaint = new Paint();
+        middleButtonTextPaint.setColor(0xff000000);
+        middleButtonTextPaint.setTextSize(90);
         gameState = NEW_GAME;
     }
 
@@ -163,16 +186,42 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         // A horizontal line.
         for (int y = topY; y < topY + 8; y++) {
             for (int x = 0; x < width; x++) {
-                pixels[x + y * width] = 0xff00ff00;
+                pixels[x + y * width] = 0xff333333;
             }
         }
         // A vertical line.
-        int middle = width / 2;
-        for (int y = topY; y < 678; y++) {
-            for (int x = middle - 3; x <= middle + 3; x++) {
-                pixels[x + y * width] = 0xff00ff00;
+        for (int y = topY; y < height - 100; y++) {
+            for (int x = (width / 2) - (width / 8) - 3; x <= (width / 2) - (width / 8) + 3; x++) {
+                pixels[x + y * width] = 0xff333333;
             }
         }
+        // A vertical line.
+        for (int y = topY; y < height - 100; y++) {
+            for (int x = (width / 2) + (width / 8) - 3; x <= (width / 2) + (width / 8) + 3; x++) {
+                pixels[x + y * width] = 0xff333333;
+            }
+        }
+        // Fill in with button current color.
+        for (int y = topY + 8; y < height - 100; y++) {
+            for (int x = 0; x < (width / 2) - (width / 8) - 4; x++) {
+                pixels[x + y * width] = leftButtonColor;
+            }
+        }
+        for (int y = topY + 8; y < height - 100; y++) {
+            for (int x = (width / 2) + (width / 8) + 4; x < width; x++) {
+                pixels[x + y * width] = rightButtonColor;
+            }
+        }
+        // Middle button.
+        for (int y = topY + 8; y < height - 100; y++) {
+            for (int x = (width / 2) - (width / 8) + 4; x < (width / 2) + (width / 8) - 3; x++) {
+                pixels[x + y * width] = middleButtonColor;
+            }
+        }
+    }
+
+    public void updateScore(int levelScore) {
+        score = levelScore;
     }
 
     /**
@@ -181,6 +230,10 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     public void setRunning(Boolean b) {
         this.running = b;
+    }
+
+    public void resetGame() {
+        gameState = GAME_RESTARTING;
     }
 
     /**
@@ -213,14 +266,20 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     private void update() {
         switch (gameState) {
             case NEW_GAME:
-                paddle.update(lastTime);
+                level.update(lastTime, this);
                 ball.followPaddle();
                 if (leftButton) goLeft = true;
                 if (rightButton) goRight = true;
                 break;
             case GAME_IN_PLAY:
-                paddle.update(lastTime);
                 ball.update(lastTime);
+                level.update(lastTime, this);
+                if (leftButton) goLeft = true;
+                if (rightButton) goRight = true;
+                break;
+            case GAME_RESTARTING:
+                level.update(lastTime, this);
+                ball.followPaddle();
                 if (leftButton) goLeft = true;
                 if (rightButton) goRight = true;
                 break;
@@ -241,32 +300,44 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         switch (gameState) {
             case NEW_GAME:
                 setMyBackgroundColor(0xff000000);
-                paddle.render(this);
+                //paddle.render(this);
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
             case GAME_IN_PLAY:
                 setMyBackgroundColor(0xff000000);
-                paddle.render(this);
+                //paddle.render(this);
+                level.render(this);
+                ball.render(this);
+                controls.render(this);
+                break;
+            case GAME_RESTARTING:
+                setMyBackgroundColor(0xff000000);
+                //paddle.render(this);
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
         }
-
-
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
-        c.drawText("Score: " + score, 10, 40, paint);
-    }
+        c.drawText("Score: " + score, 10, 40, scoreTextPaint);
+        c.drawText("<", 50, height - 125, buttonTextPaint);
+        c.drawText(">", width - 140, height - 125, buttonTextPaint);
+        if (gameState == GAME_IN_PLAY) c.drawText("||", (width / 2) - 24, height - 165, middleButtonTextPaint);
+        if (gameState == NEW_GAME || gameState == GAME_RESTARTING) {
+            c.drawText("^", (width / 2) - 20, height - 170, middleButtonTextPaint);
+            c.drawText("^", (width / 2) - 20, height - 130, middleButtonTextPaint);
+        }
+        }
 
-    /**
-     * Standard override to get key-pressed events.
-     */
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent msg) {
-        switch (keyCode) {
+        /**
+         * Standard override to get key-pressed events.
+         */
+        @Override
+        public boolean onKeyDown(int keyCode, KeyEvent msg) {
+            switch (keyCode) {
             case KeyEvent.KEYCODE_S:
                 Log.v("___________onKeyDown", "S KEY DOWN");
                 return true;
@@ -298,7 +369,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 goRight = false;
                 return true;
             case KeyEvent.KEYCODE_SPACE:
-                if (gameState == NEW_GAME) {
+                if (gameState == NEW_GAME || gameState == GAME_RESTARTING) {
                     gameState = GAME_IN_PLAY;
                     ball.launchBall();
                 }
@@ -340,27 +411,75 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     public void surfaceDestroyed(SurfaceHolder holder) {
     }
 
-    boolean leftButton = false;
-    boolean rightButton = false;
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         switch (gameState) {
             case GAME_IN_PLAY:
-            case NEW_GAME:
-                if (e.getAction() == MotionEvent.ACTION_DOWN && e.getX() < (width / 2) - 3 && e.getY() > 547) {
-                    leftButton = true;
-                    rightButton = false;
+                if (e.getAction() == MotionEvent.ACTION_DOWN) {
+                    Log.v("_______onTouchEvent", "X: " + e.getX() + " Y: " + e.getY());
+                    if (controls.isLeftButton((int)e.getX(), (int)e.getY())) {
+                        leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                        leftButton = true;
+                        rightButton = false;
+                    }
+                    if (controls.isRightButton((int)e.getX(), (int)e.getY())) {
+                        rightButtonColor = 0xffff0000;
+                        rightButton = true;
+                        leftButton = false;
+                    }
+                    if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
+                        middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                        rightButton = false;
+                        leftButton = false;
+                        //gameState = GAME_PAUSED;
+                        Log.v("_______onTouchEvent", "Pause Game");
+
+                    }
                 }
-                if (e.getAction() == MotionEvent.ACTION_DOWN && e.getX() > (width / 2) + 3 && e.getY() > 547) {
-                    leftButton = false;
-                    rightButton = true;
-                }
+
                 if (e.getAction() == MotionEvent.ACTION_UP) {
                     leftButton = false;
                     rightButton = false;
                     goRight = false;
                     goLeft = false;
+                    leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                    rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                    middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
+                }
+                return true;
+            case GAME_RESTARTING:
+            case NEW_GAME:
+                if (e.getAction() == MotionEvent.ACTION_DOWN) {
+                    Log.v("_______onTouchEvent", "X: " + e.getX() + " Y: " + e.getY());
+                    if (controls.isLeftButton((int)e.getX(), (int)e.getY())) {
+                        leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                        leftButton = true;
+                        rightButton = false;
+                    }
+                    if (controls.isRightButton((int)e.getX(), (int)e.getY())) {
+                        rightButtonColor = 0xffff0000;
+                        rightButton = true;
+                        leftButton = false;
+                    }
+                    if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
+                        middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                        rightButton = false;
+                        leftButton = false;
+                        gameState = GAME_IN_PLAY;
+                        ball.launchBall();
+
+                    }
+                }
+
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+                    leftButton = false;
+                    rightButton = false;
+                    goRight = false;
+                    goLeft = false;
+                    leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                    rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                    middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
                 }
                 return true;
             default:

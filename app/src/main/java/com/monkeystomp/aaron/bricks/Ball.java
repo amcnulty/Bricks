@@ -20,10 +20,10 @@ public class Ball {
     private double dir = -1.0;
 
     // The radius of the ball.
-    private static final double BALL_RADIUS = 15.0;
+    private static final double BALL_RADIUS = 10.0;
 
     // Radius to check for collisions.
-    private static final double BALL_COLLISION_RADIUS = 16.5;
+    private static final double BALL_COLLISION_RADIUS = 11.5;
 
     // Speed of ball animation.
     private static final int BALL_SPEED_SEC = 200;
@@ -32,6 +32,9 @@ public class Ball {
 
     // Used in the move method for collision detection.
     private boolean collision = false;
+
+    // Used to signal the view that ball has been lost.
+    private boolean ballInPlay = true;
 
     // Handle for the paddle. The ball needs to know where the paddle is.
     Paddle paddle;
@@ -49,18 +52,17 @@ public class Ball {
         this.paddle = paddle;
         this.level = level;
         x = paddle.x;
-        y = paddle.y - BALL_RADIUS;
+        y = paddle.y - BALL_COLLISION_RADIUS;
         random = new Random();
     }
 
     public void followPaddle() {
         x = paddle.x;
-        y = paddle.y - BALL_RADIUS;
+        y = paddle.y - BALL_COLLISION_RADIUS;
     }
 
     public void launchBall() {
         dir = 80 + (20 * random.nextDouble());
-        dir = 104;
         Log.v("_________launchBall", "Ball is launching in direction " + dir);
     }
 
@@ -110,17 +112,66 @@ public class Ball {
                 }
             }
         }
-            Log.v("_________move", "Collision: " + collision + " direction: " + dir + " Ball X: " + x + " Ball Y: " + y);
+        // Check for the paddle
+        if (!collision) {
+            if (level.paddleHere(nextX, nextY + BALL_COLLISION_RADIUS)) {
+                collision = true;
+                point = 270.0;
+                if (nextX > paddle.x - 37 && nextX < paddle.x - 17) {
+                    Log.v("________move", "Hit Left Side of Paddle");
+                    point = 280.0;
+                }
+                else if (nextX < paddle.x + 37 && nextX > paddle.x + 17) {
+                    Log.v("________move", "Hit Right Side of Paddle");
+                    point = 260.0;
+                }
+            }
+            // Check for a corner hit on the paddle.
+            if (!collision) {
+                for (int step = -90; step <= 90; step += 15) {
+                    if (level.paddleHere(nextX, nextY + (BALL_COLLISION_RADIUS * Math.sin(Math.toRadians(dir + step))))) {
+                        collision = true;
+                        point = dir + step;
+                        break;
+                    }
+                }
+            }
+        }
+        // checks for walls and ceiling.
+        if (!collision) {
+            for (int i = 0; i < 3; i++) {
+                switch (i) {
+                    case 0:
+                        if (level.wallHere(nextX - BALL_COLLISION_RADIUS, nextY)) {
+                            collision = true;
+                            point = 180.0;
+                        }
+                        break;
+                    case 1:
+                        if (level.wallHere(nextX, nextY - BALL_COLLISION_RADIUS)) {
+                            collision = true;
+                            point = 90.0;
+                        }
+                        break;
+                    case 2:
+                        if (level.wallHere(nextX + BALL_COLLISION_RADIUS, nextY)) {
+                            collision = true;
+                            point = 0.0;
+                        }
+                        break;
+                }
+            }
+        }
+            //Log.v("_________move", "Collision: " + collision + " direction: " + dir + " Ball X: " + x + " Ball Y: " + y);
         if (collision) {
-//            newPoint = point + 180;
-//            if (newPoint >= 360) newPoint -= 360;
-//            newDir = dir + 180;
-//            if (newDir >= 360) newDir -= 360;
-//            this.dir = (newPoint - newDir) + newPoint;
-            Log.v("_________move", " dir: " + dir + " this.dir: " + this.dir + " point: " + point);
+            //Log.v("_________move", " dir: " + dir + " this.dir: " + this.dir + " point: " + point);
             this.dir = (point - dir) + (point + 180);
             if (this.dir >= 360) this.dir -= 360;
             else if (this.dir < 0) this.dir += 360;
+            if (this.dir >= 0 && this.dir < 18) this.dir = 18;
+            else if (this.dir <= 180 && this.dir > 162) this.dir = 162;
+            else if (this.dir >= 180 && this.dir < 198) this.dir = 198;
+            else if (this.dir <= 359.99999 && this.dir > 342) this.dir = 342;
             collision = false;
         }
         else {
@@ -135,9 +186,16 @@ public class Ball {
         else {
             move(dir, lastTime, now);
         }
+        if (y > paddle.y) {
+            ballInPlay = false;
+        }
     }
 
     public void render(BricksView view) {
-        view.drawBall(x, y, BALL_RADIUS, ballColor);
+        if (ballInPlay) view.drawBall(x, y, BALL_RADIUS, ballColor);
+        else {
+            view.resetGame();
+            ballInPlay = true;
+        }
     }
 }
