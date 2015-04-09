@@ -4,6 +4,7 @@
 
 package com.monkeystomp.aaron.bricks;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -142,6 +143,14 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         middleButtonTextPaint.setColor(0xff000000);
         middleButtonTextPaint.setTextSize(90);
         gameState = NEW_GAME;
+    }
+
+    public void stopMusic() {
+        level.stopMusic();
+    }
+
+    public void resumeMusic() {
+        level.resumeMusic();
     }
 
     private void setMyBackgroundColor(int color) {
@@ -283,6 +292,10 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 if (leftButton) goLeft = true;
                 if (rightButton) goRight = true;
                 break;
+            case GAME_PAUSED:
+                // this is where we will update a fragment that has a view and buttons asking about the game being paused.
+
+                break;
         }
         // Recalculate lastTime variable.
         lastTime = System.currentTimeMillis();
@@ -300,21 +313,24 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         switch (gameState) {
             case NEW_GAME:
                 setMyBackgroundColor(0xff000000);
-                //paddle.render(this);
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
             case GAME_IN_PLAY:
                 setMyBackgroundColor(0xff000000);
-                //paddle.render(this);
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
             case GAME_RESTARTING:
                 setMyBackgroundColor(0xff000000);
-                //paddle.render(this);
+                level.render(this);
+                ball.render(this);
+                controls.render(this);
+                break;
+            case GAME_PAUSED:
+                setMyBackgroundColor(0xff000000);
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
@@ -325,7 +341,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         c.drawText("Score: " + score, 10, 40, scoreTextPaint);
         c.drawText("<", 50, height - 125, buttonTextPaint);
         c.drawText(">", width - 140, height - 125, buttonTextPaint);
-        if (gameState == GAME_IN_PLAY) c.drawText("||", (width / 2) - 24, height - 165, middleButtonTextPaint);
+        if (gameState == GAME_IN_PLAY || gameState == GAME_PAUSED) c.drawText("||", (width / 2) - 24, height - 165, middleButtonTextPaint);
         if (gameState == NEW_GAME || gameState == GAME_RESTARTING) {
             c.drawText("^", (width / 2) - 20, height - 170, middleButtonTextPaint);
             c.drawText("^", (width / 2) - 20, height - 130, middleButtonTextPaint);
@@ -409,6 +425,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        level.pauseMusic();
     }
 
 
@@ -432,7 +449,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                         middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
                         rightButton = false;
                         leftButton = false;
-                        //gameState = GAME_PAUSED;
                         Log.v("_______onTouchEvent", "Pause Game");
 
                     }
@@ -446,12 +462,15 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
+                    if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
+                        gameState = GAME_PAUSED;
+                        level.pauseMusic();
+                    }
                 }
                 return true;
             case GAME_RESTARTING:
             case NEW_GAME:
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                    Log.v("_______onTouchEvent", "X: " + e.getX() + " Y: " + e.getY());
                     if (controls.isLeftButton((int)e.getX(), (int)e.getY())) {
                         leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
                         leftButton = true;
@@ -466,13 +485,14 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                         middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
                         rightButton = false;
                         leftButton = false;
-                        gameState = GAME_IN_PLAY;
-                        ball.launchBall();
-
                     }
                 }
 
                 if (e.getAction() == MotionEvent.ACTION_UP) {
+                    if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
+                        gameState = GAME_IN_PLAY;
+                        ball.launchBall();
+                    }
                     leftButton = false;
                     rightButton = false;
                     goRight = false;
@@ -480,6 +500,20 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
+                }
+                return true;
+            case GAME_PAUSED:
+                if (e.getAction() == MotionEvent.ACTION_DOWN) {
+                    if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
+                        middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                    }
+                }
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+                    if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
+                        middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
+                        gameState = GAME_IN_PLAY;
+                        level.resumeMusic();
+                    }
                 }
                 return true;
             default:

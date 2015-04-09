@@ -117,23 +117,13 @@ public class Ball {
             if (level.paddleHere(nextX, nextY + BALL_COLLISION_RADIUS)) {
                 collision = true;
                 point = 270.0;
-                if (nextX > paddle.x - 37 && nextX < paddle.x - 17) {
+                if (nextX > paddle.x - 38 && nextX < paddle.x - 17) {
                     Log.v("________move", "Hit Left Side of Paddle");
                     point = 280.0;
                 }
-                else if (nextX < paddle.x + 37 && nextX > paddle.x + 17) {
+                else if (nextX < paddle.x + 38 && nextX > paddle.x + 17) {
                     Log.v("________move", "Hit Right Side of Paddle");
                     point = 260.0;
-                }
-            }
-            // Check for a corner hit on the paddle.
-            if (!collision) {
-                for (int step = -90; step <= 90; step += 15) {
-                    if (level.paddleHere(nextX, nextY + (BALL_COLLISION_RADIUS * Math.sin(Math.toRadians(dir + step))))) {
-                        collision = true;
-                        point = dir + step;
-                        break;
-                    }
                 }
             }
         }

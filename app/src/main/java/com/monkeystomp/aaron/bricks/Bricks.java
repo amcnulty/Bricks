@@ -11,6 +11,8 @@ public class Bricks extends ActionBarActivity {
 
     private BricksView mBricksView;
 
+    private boolean homeWasPressed = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,6 +60,9 @@ public class Bricks extends ActionBarActivity {
         // If a phone call is received and surface created isn't called,
         // this will make sure that the running variable is set to true.
         mBricksView.setRunning(true);
+        if (homeWasPressed) {
+            mBricksView.resumeMusic();
+        }
         Log.v("$$$$onResume", "Program is resuming");
     }
 
@@ -68,8 +73,15 @@ public class Bricks extends ActionBarActivity {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mBricksView.stopMusic();
+    }
+
+    @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        homeWasPressed = true;
     }
 
 }

@@ -3,10 +3,13 @@ package com.monkeystomp.aaron.bricks;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -25,6 +28,7 @@ public class Level {
 
     // Used to load in the level's sounds.
     SoundPool soundPool;
+    MediaPlayer mediaPlayer;
 
     // Id's of the different sounds.
     int wallBounceId;
@@ -52,8 +56,29 @@ public class Level {
         else {
             soundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 1);
         }
+        Log.v(null, "!!!!!!!!!!!!!!!STARTING MUSIC!!!!!!!!!!!!!!!!!!!!!!!!!");
+        startMusic();
         brickBreakId = soundPool.load(context, R.raw.brickbreak, 1);
         wallBounceId = soundPool.load(context, R.raw.wallbounce, 1);
+    }
+
+    public void startMusic() {
+        mediaPlayer = MediaPlayer.create(context, R.raw.classical_a_minor);
+        mediaPlayer.setLooping(true);
+        mediaPlayer.start();
+    }
+
+    public void stopMusic() {
+        mediaPlayer.stop();
+        mediaPlayer.release();
+    }
+
+    public void pauseMusic() {
+        mediaPlayer.pause();
+    }
+
+    public void resumeMusic() {
+        mediaPlayer.start();
     }
 
     private void addBlocks() {
