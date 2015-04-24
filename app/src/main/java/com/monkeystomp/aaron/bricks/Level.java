@@ -7,7 +7,6 @@ import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Build;
-import android.util.Log;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,7 +55,6 @@ public class Level {
         else {
             soundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 1);
         }
-        Log.v(null, "!!!!!!!!!!!!!!!STARTING MUSIC!!!!!!!!!!!!!!!!!!!!!!!!!");
         startMusic();
         brickBreakId = soundPool.load(context, R.raw.brickbreak, 1);
         wallBounceId = soundPool.load(context, R.raw.wallbounce, 1);
@@ -115,11 +113,11 @@ public class Level {
     }
 
     public boolean wallHere(double x, double y) {
-        if (x <= 20) {
+        if (x <= 40) {
             soundPool.play(wallBounceId, .5f, .5f, 1, 0, .75f);
             return true;
         }
-        else if (x >= width - 20) {
+        else if (x >= width - 40) {
             soundPool.play(wallBounceId, .5f, .5f, 1, 0, .75f);
             return true;
         }
@@ -133,7 +131,6 @@ public class Level {
     public boolean paddleHere(double x, double y) {
         if (paddle.paddleHere(x, y)) {
             soundPool.play(wallBounceId, .5f, .5f, 1, 0, .75f);
-            Log.v("____________paddleHere", "Paddle hit");
             return true;
         }
         return false;
@@ -141,7 +138,6 @@ public class Level {
 
     public void increaseScore(int blockPointValue) {
         score += blockPointValue;
-        Log.v("______increaseScore", "score: " + score);
     }
 
     public void update(long lastTime, BricksView view) {

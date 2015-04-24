@@ -41,24 +41,6 @@ public class Block {
     // Handle to the Level it is associated with to send score information.
     Level level;
 
-    /**
-     *
-     * @param x x location of the block. (left side of block)
-     * @param y y location of the block. (top of the block)
-     */
-
-    public Block(int x, int y) {
-        this.x = x;
-        this.y = y;
-        blockColor = 0xff888888;
-    }
-
-//    public Block(int x, int y, int blockColor) {
-//        this.x = x;
-//        this.y = y;
-//        this.blockColor = blockColor;
-//    }
-
     public Block(int x, int y, int blockType, Level level) {
         this.x = x;
         this.y = y;

@@ -4,7 +4,6 @@
 
 package com.monkeystomp.aaron.bricks;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -47,12 +46,12 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // Various states the game can be in.
     private static final int NEW_GAME = 1;
     private static final int GAME_IN_PLAY = 2;
-    private static final int GAME_PAUSED = 3;
+    public static final int GAME_PAUSED = 3;
     private static final int GAME_LOST = 4;
     private static final int GAME_RESTARTING = 5;
 
     // The gameState variable is the switch control for updates and renders.
-    private int gameState;
+    public int gameState;
 
     // Width and height of the surface.
     private int width, height;
@@ -87,6 +86,9 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
 
     // Array of pixel data to be given to the bitmap.
     public int[] pixels;
+
+    // Length of the pixels array
+    private int len;
 
     // The only level in the game right now.
     Level level;
@@ -126,7 +128,9 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         level = new Level(width, height, context, this);
         ball = new Ball(level.paddle, level);
         pixels = new int[width * height];
-        setMyBackgroundColor(0x000000);
+        len = pixels.length;
+        resetBackground();
+        drawWalls();
         random = new Random();
         mSurfaceHolder = getHolder();
         mSurfaceHolder.addCallback(this);
@@ -153,10 +157,25 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         level.resumeMusic();
     }
 
-    private void setMyBackgroundColor(int color) {
-        int len = pixels.length;
-        for (int i = 0; i < len; i++) {
-            pixels[i] = color;
+    private void resetBackground() {
+//        for (int i = 0; i < len; i++) {
+//            pixels[i] = 0xff000000;
+//        }
+        for (int y = 0; y < height; y++) {
+            for (int x = 41; x < width - 40; x++                                          ) {
+                pixels[x + y * width] = 0xff000000;
+            }
+        }
+    }
+
+    private void drawWalls() {
+        for (int y = 60; y < height; y++) {
+            for (int x = 0; x <= 40; x++) {
+                pixels[x + y * width] = 0xff00ff00;
+            }
+            for (int x = width - 40; x < width; x++) {
+                pixels[x + y * width] = 0xff00ff00;
+            }
         }
     }
 
@@ -266,7 +285,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 frames = 0;
             }
         }
-        Log.v("____________run", "Thread has reached end of run method. Thread is dying");
     }
 
     /**
@@ -278,19 +296,25 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 level.update(lastTime, this);
                 ball.followPaddle();
                 if (leftButton) goLeft = true;
+                else goLeft = false;
                 if (rightButton) goRight = true;
+                else goRight = false;
                 break;
             case GAME_IN_PLAY:
                 ball.update(lastTime);
                 level.update(lastTime, this);
                 if (leftButton) goLeft = true;
+                else goLeft = false;
                 if (rightButton) goRight = true;
+                else goRight = false;
                 break;
             case GAME_RESTARTING:
                 level.update(lastTime, this);
                 ball.followPaddle();
                 if (leftButton) goLeft = true;
+                else goLeft = false;
                 if (rightButton) goRight = true;
+                else goRight = false;
                 break;
             case GAME_PAUSED:
                 // this is where we will update a fragment that has a view and buttons asking about the game being paused.
@@ -307,30 +331,29 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     private void render(Canvas c) {
         if (bitmap == null) {
-            //Log.v("_____________render", "Bitmap is empty, creating new one");
             bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         }
         switch (gameState) {
             case NEW_GAME:
-                setMyBackgroundColor(0xff000000);
+                resetBackground();
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
             case GAME_IN_PLAY:
-                setMyBackgroundColor(0xff000000);
+                resetBackground();
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
             case GAME_RESTARTING:
-                setMyBackgroundColor(0xff000000);
+                resetBackground();
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
                 break;
             case GAME_PAUSED:
-                setMyBackgroundColor(0xff000000);
+                resetBackground();
                 level.render(this);
                 ball.render(this);
                 controls.render(this);
@@ -453,12 +476,107 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
 
                     }
                 }
-
+                if (e.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
+                    Log.v("_______onTouchEvent", "ACTION POINTER DOWN. X: " + e.getX(1) + " Y: " + e.getY(1));
+                    switch (e.getActionIndex()) {
+                        case 0:
+                            if (controls.isLeftButton((int) e.getX(), (int) e.getY())) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = true;
+                                rightButton = false;
+                            }
+                            if (controls.isRightButton((int) e.getX(), (int) e.getY())) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = true;
+                                leftButton = false;
+                            }
+                            if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
+                                middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButton = false;
+                            }
+                            break;
+                        case 1:
+                            if (controls.isLeftButton((int) e.getX(1), (int) e.getY(1))) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = true;
+                                rightButton = false;
+                            }
+                            if (controls.isRightButton((int) e.getX(1), (int) e.getY(1))) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = true;
+                                leftButton = false;
+                            }
+                            if (controls.isMiddleButton((int) e.getX(1), (int) e.getY(1))) {
+                                middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButton = false;
+                            }
+                            break;
+                    }
+                }
+                if (e.getActionMasked() == MotionEvent.ACTION_POINTER_UP) {
+                    Log.v("_______onTouchEvent","Action Index: " + e.getActionIndex() + " ACTION POINTER UP. X: " + e.getX(1) + " Y: " + e.getY(1));
+                    switch (e.getActionIndex()) {
+                        case 0:
+                            if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
+                                gameState = GAME_PAUSED;
+                                level.pauseMusic();
+                            }
+                            else if (controls.isLeftButton((int)e.getX(1), (int)e.getY(1))) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButton = true;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                            }
+                            else if (controls.isRightButton((int) e.getX(1), (int) e.getY(1))) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButton = true;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            }
+                            else {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            }
+                            break;
+                        case 1:
+                            if (controls.isMiddleButton((int) e.getX(1), (int) e.getY(1))) {
+                                gameState = GAME_PAUSED;
+                                level.pauseMusic();
+                            } else if (controls.isLeftButton((int) e.getX(), (int) e.getY())) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButton = true;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                            } else if (controls.isRightButton((int) e.getX(), (int) e.getY())) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButton = true;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            } else {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            }
+                            break;
+                    }
+                }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
+                    Log.v("_______onTouchEvent", "X: " + e.getX() + " Y: " + e.getY());
                     leftButton = false;
                     rightButton = false;
-                    goRight = false;
-                    goLeft = false;
                     leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
@@ -470,14 +588,35 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 return true;
             case GAME_RESTARTING:
             case NEW_GAME:
+                if (e.getAction() == MotionEvent.ACTION_MOVE) {
+                    try {
+                        if (!controls.isLeftButton((int) e.getX(), (int) e.getY()) && goLeft && e.getX(1) < 0) {
+                            leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                            leftButton = false;
+                        } else if (!controls.isRightButton((int) e.getX(), (int) e.getY()) && goRight && e.getX(1) < 0) {
+                            rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                            rightButton = false;
+                        }
+                    }
+                    catch (IllegalArgumentException event) {
+                        if (!controls.isLeftButton((int) e.getX(), (int) e.getY()) && goLeft) {
+                            leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                            leftButton = false;
+                        } else if (!controls.isRightButton((int) e.getX(), (int) e.getY()) && goRight) {
+                            rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                            rightButton = false;
+                        }
+                    }
+                }
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
+                    Log.v("_______onTouchEvent", "ACTION DOWN. X: " + e.getX() + " Y: " + e.getY());
                     if (controls.isLeftButton((int)e.getX(), (int)e.getY())) {
                         leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
                         leftButton = true;
                         rightButton = false;
                     }
                     if (controls.isRightButton((int)e.getX(), (int)e.getY())) {
-                        rightButtonColor = 0xffff0000;
+                        rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
                         rightButton = true;
                         leftButton = false;
                     }
@@ -487,20 +626,116 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                         leftButton = false;
                     }
                 }
-
+                if (e.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
+                    Log.v("_______onTouchEvent", "ACTION POINTER DOWN. X: " + e.getX(1) + " Y: " + e.getY(1));
+                    switch (e.getActionIndex()) {
+                        case 0:
+                            if (controls.isLeftButton((int) e.getX(), (int) e.getY())) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = true;
+                                rightButton = false;
+                            }
+                            if (controls.isRightButton((int) e.getX(), (int) e.getY())) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = true;
+                                leftButton = false;
+                            }
+                            if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
+                                middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButton = false;
+                            }
+                            break;
+                        case 1:
+                            if (controls.isLeftButton((int) e.getX(1), (int) e.getY(1))) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = true;
+                                rightButton = false;
+                            }
+                            if (controls.isRightButton((int) e.getX(1), (int) e.getY(1))) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = true;
+                                leftButton = false;
+                            }
+                            if (controls.isMiddleButton((int) e.getX(1), (int) e.getY(1))) {
+                                middleButtonColor = MIDDLE_BUTTON_COLOR_DOWN;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButton = false;
+                            }
+                            break;
+                    }
+                }
+                if (e.getActionMasked() == MotionEvent.ACTION_POINTER_UP) {
+                    Log.v("_______onTouchEvent","Action Index: " + e.getActionIndex() + " ACTION POINTER UP. X: " + e.getX(1) + " Y: " + e.getY(1));
+                    switch (e.getActionIndex()) {
+                        case 0:
+                            if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
+                                gameState = GAME_IN_PLAY;
+                                ball.launchBall();
+                            }
+                            else if (controls.isLeftButton((int)e.getX(1), (int)e.getY(1))) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButton = true;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                            }
+                            else if (controls.isRightButton((int) e.getX(1), (int) e.getY(1))) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButton = true;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            }
+                            else {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            }
+                            break;
+                        case 1:
+                            if (controls.isMiddleButton((int) e.getX(1), (int) e.getY(1))) {
+                                gameState = GAME_IN_PLAY;
+                                ball.launchBall();
+                            } else if (controls.isLeftButton((int) e.getX(), (int) e.getY())) {
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                leftButton = true;
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                            } else if (controls.isRightButton((int) e.getX(), (int) e.getY())) {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
+                                rightButton = true;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            } else {
+                                rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                rightButton = false;
+                                leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
+                                leftButton = false;
+                            }
+                            break;
+                    }
+                }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
+                    Log.v("_______onTouchEvent", "ACTION UP. X: " + e.getX() + " Y: " + e.getY());
                     if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
                         gameState = GAME_IN_PLAY;
                         ball.launchBall();
                     }
                     leftButton = false;
                     rightButton = false;
-                    goRight = false;
-                    goLeft = false;
                     leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
                 }
+                Log.v("_______onTouchEvent", "rightButton: " + rightButton + " leftButton" + leftButton);
                 return true;
             case GAME_PAUSED:
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {

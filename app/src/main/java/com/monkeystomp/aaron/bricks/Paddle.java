@@ -10,8 +10,8 @@ public class Paddle {
     public static final int PADDLE_HEIGHT = 7;
 
     // Bounds for the paddle x location.
-    private static final int PADDLE_LEFT_BOUND = 40;
-    private static final int PADDLE_RIGHT_BOUND = 440;
+    private int paddleLeftBound = 78;
+    private int paddleRightBound;
 
     // Speed of paddle animation.
     private static final int PADDLE_SPEED_SEC = 170;
@@ -30,13 +30,14 @@ public class Paddle {
     // Dimensions of the screen.
     private int width, height;
 
-    // Level the paddle is on.
+    // Level the paddle is on. This is currently not being used.
     Level level;
     
     public Paddle(int width, int height, Level level) {
         this.width = width;
         this.height = height;
         this.level = level;
+        this.paddleRightBound = width - 78;
         x = (width / 2);
         y = height - 270;
     }
@@ -52,16 +53,16 @@ public class Paddle {
         now = System.currentTimeMillis();
         if (now < lastTime) return;
         else {
-            if (view.goLeft && x > PADDLE_LEFT_BOUND){
+            if (view.goLeft && x > paddleLeftBound){
                 elapsed = (now - lastTime) / 1000.0;
                 x -= PADDLE_SPEED_SEC * elapsed;
             }
-            else if (view.goRight && x < PADDLE_RIGHT_BOUND){
+            else if (view.goRight && x < paddleRightBound){
                 elapsed = (now - lastTime) / 1000.0;
                 x += PADDLE_SPEED_SEC * elapsed;
             }
-            if (x < PADDLE_LEFT_BOUND) x = PADDLE_LEFT_BOUND;
-            else if (x > PADDLE_RIGHT_BOUND) x = PADDLE_RIGHT_BOUND;
+            if (x < paddleLeftBound) x = paddleLeftBound;
+            else if (x > paddleRightBound) x = paddleRightBound;
         }
     }
 

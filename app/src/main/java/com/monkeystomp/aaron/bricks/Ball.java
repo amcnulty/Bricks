@@ -1,7 +1,5 @@
 package com.monkeystomp.aaron.bricks;
 
-import android.util.Log;
-
 import java.util.Random;
 
 /**
@@ -63,7 +61,6 @@ public class Ball {
 
     public void launchBall() {
         dir = 80 + (20 * random.nextDouble());
-        Log.v("_________launchBall", "Ball is launching in direction " + dir);
     }
 
     public void move(double dir, long lastTime, double now) {
@@ -118,11 +115,9 @@ public class Ball {
                 collision = true;
                 point = 270.0;
                 if (nextX > paddle.x - 38 && nextX < paddle.x - 17) {
-                    Log.v("________move", "Hit Left Side of Paddle");
                     point = 280.0;
                 }
                 else if (nextX < paddle.x + 38 && nextX > paddle.x + 17) {
-                    Log.v("________move", "Hit Right Side of Paddle");
                     point = 260.0;
                 }
             }
@@ -152,9 +147,7 @@ public class Ball {
                 }
             }
         }
-            //Log.v("_________move", "Collision: " + collision + " direction: " + dir + " Ball X: " + x + " Ball Y: " + y);
         if (collision) {
-            //Log.v("_________move", " dir: " + dir + " this.dir: " + this.dir + " point: " + point);
             this.dir = (point - dir) + (point + 180);
             if (this.dir >= 360) this.dir -= 360;
             else if (this.dir < 0) this.dir += 360;
@@ -176,7 +169,7 @@ public class Ball {
         else {
             move(dir, lastTime, now);
         }
-        if (y > paddle.y) {
+        if (y + BALL_COLLISION_RADIUS > paddle.y) {
             ballInPlay = false;
         }
     }

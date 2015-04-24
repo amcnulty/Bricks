@@ -1,5 +1,6 @@
 package com.monkeystomp.aaron.bricks;
 
+import android.content.pm.ActivityInfo;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,6 +17,7 @@ public class Bricks extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_bricks);
 
         // Instantiate BricksView and create a object variable for this class
@@ -60,16 +62,17 @@ public class Bricks extends ActionBarActivity {
         // If a phone call is received and surface created isn't called,
         // this will make sure that the running variable is set to true.
         mBricksView.setRunning(true);
-        if (homeWasPressed) {
+        if (homeWasPressed && mBricksView.gameState != mBricksView.GAME_PAUSED) {
             mBricksView.resumeMusic();
         }
-        Log.v("$$$$onResume", "Program is resuming");
+        Log.v("________onResume", "Program is resuming");
     }
 
     @Override
     public void onStop() {
+        mBricksView.gameState = mBricksView.GAME_PAUSED;
         super.onStop();
-        Log.v("onStop", "Program is stopped");
+        Log.v("__________onStop", "Program is stopped");
     }
 
     @Override
