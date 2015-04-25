@@ -171,6 +171,7 @@ public class Ball {
         }
         if (y + BALL_COLLISION_RADIUS > paddle.y) {
             ballInPlay = false;
+            level.lostBall();
         }
     }
 

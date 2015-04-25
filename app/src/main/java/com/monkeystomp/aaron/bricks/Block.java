@@ -38,6 +38,9 @@ public class Block {
     // Point value of this block.
     public int blockPointValue;
 
+    // Multiplier value of this block.
+    public int multiplier;
+
     // Handle to the Level it is associated with to send score information.
     Level level;
 
@@ -49,14 +52,17 @@ public class Block {
             case PLAIN_BLOCK:
                 blockColor = PLAIN_BLOCK_COLOR;
                 blockPointValue = PLAIN_BLOCK_POINT_VALUE;
+                multiplier = 1;
                 break;
             case GOLD_BLOCK:
                 blockColor = GOLD_BLOCK_COLOR;
                 blockPointValue = GOLD_BLOCK_POINT_VALUE;
+                multiplier = 3;
                 break;
             case SILVER_BLOCK:
                 blockColor = SILVER_BLOCK_COLOR;
                 blockPointValue = SILVER_BLOCK_POINT_VALUE;
+                multiplier = 2;
                 break;
         }
     }
@@ -65,6 +71,8 @@ public class Block {
         if (x >= this.x && x <= this.x + BLOCK_WIDTH && y >= this.y && y <= this.y + BLOCK_HEIGHT && !broken) {
             broken = true;
             level.increaseScore(blockPointValue);
+            level.startMultiplier(multiplier);
+            level.checkForVictory();
             return true;
         }
         return false;

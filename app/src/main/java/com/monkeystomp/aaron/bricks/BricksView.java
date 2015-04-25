@@ -44,11 +44,12 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     private boolean running = false;
 
     // Various states the game can be in.
-    private static final int NEW_GAME = 1;
+    private static final int GAME_READY = 1;
     private static final int GAME_IN_PLAY = 2;
     public static final int GAME_PAUSED = 3;
-    private static final int GAME_LOST = 4;
+    public static final int GAME_LOST = 4;
     private static final int GAME_RESTARTING = 5;
+    public static final int LEVEL_CLEARED = 6;
 
     // The gameState variable is the switch control for updates and renders.
     public int gameState;
@@ -78,6 +79,9 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     // Used to keep track of loop intervals.
     private long lastTime = 0;
 
+    // Used to time the game won and lost messages.
+    private long messageTimer;
+
     // Allows for random elements in the game.
     private Random random;
 
@@ -106,9 +110,15 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     Paint scoreTextPaint;
     Paint buttonTextPaint;
     Paint middleButtonTextPaint;
+    Paint multiplierTextPaint;
+    Paint gameLostTextPaint;
 
     // The game score.
     int score = 0;
+
+    // The game score multiplier.
+    private String multiplier;
+    private boolean showMultiplier = false;
 
     /**
      * Constructor for setting up the SurfaceView with the SurfaceHolder.
@@ -146,7 +156,13 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         middleButtonTextPaint = new Paint();
         middleButtonTextPaint.setColor(0xff000000);
         middleButtonTextPaint.setTextSize(90);
-        gameState = NEW_GAME;
+        multiplierTextPaint = new Paint();
+        multiplierTextPaint.setTextSize(40);
+        multiplierTextPaint.setColor(0xffFFFD01);
+        gameLostTextPaint = new Paint();
+        gameLostTextPaint.setTextSize(50);
+        gameLostTextPaint.setColor(0xffff0000);
+        gameState = GAME_READY;
     }
 
     public void stopMusic() {
@@ -158,11 +174,13 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     }
 
     private void resetBackground() {
-//        for (int i = 0; i < len; i++) {
-//            pixels[i] = 0xff000000;
-//        }
         for (int y = 0; y < height; y++) {
-            for (int x = 41; x < width - 40; x++                                          ) {
+            for (int x = 41; x < width - 40; x++) {
+                pixels[x + y * width] = 0xff000000;
+            }
+        }
+        for (int y = 0; y < 60; y++) {
+            for (int x = width - 40; x < width; x++) {
                 pixels[x + y * width] = 0xff000000;
             }
         }
@@ -248,6 +266,15 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         }
     }
 
+    public void drawMultiplier(int multiplier) {
+        showMultiplier = true;
+        this.multiplier = Integer.toString(multiplier);
+    }
+
+    public void eraseMultiplier() {
+        showMultiplier = false;
+    }
+
     public void updateScore(int levelScore) {
         score = levelScore;
     }
@@ -262,6 +289,11 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
 
     public void resetGame() {
         gameState = GAME_RESTARTING;
+        showMultiplier = false;
+    }
+
+    public void startEndgameMessage() {
+        messageTimer = System.currentTimeMillis();
     }
 
     /**
@@ -292,7 +324,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
      */
     private void update() {
         switch (gameState) {
-            case NEW_GAME:
+            case GAME_READY:
                 level.update(lastTime, this);
                 ball.followPaddle();
                 if (leftButton) goLeft = true;
@@ -301,8 +333,8 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 else goRight = false;
                 break;
             case GAME_IN_PLAY:
-                ball.update(lastTime);
                 level.update(lastTime, this);
+                ball.update(lastTime);
                 if (leftButton) goLeft = true;
                 else goLeft = false;
                 if (rightButton) goRight = true;
@@ -320,6 +352,18 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 // this is where we will update a fragment that has a view and buttons asking about the game being paused.
 
                 break;
+            case GAME_LOST:
+                if (System.currentTimeMillis() > messageTimer + 3000) {
+                    level.resetLevel();
+                    gameState = GAME_READY;
+                }
+                break;
+            case LEVEL_CLEARED:
+                if (System.currentTimeMillis() > messageTimer + 3000) {
+                    level.resetLevel();
+                    gameState = GAME_READY;
+                }
+                break;
         }
         // Recalculate lastTime variable.
         lastTime = System.currentTimeMillis();
@@ -334,7 +378,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
             bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         }
         switch (gameState) {
-            case NEW_GAME:
+            case GAME_READY:
                 resetBackground();
                 level.render(this);
                 ball.render(this);
@@ -358,14 +402,25 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 ball.render(this);
                 controls.render(this);
                 break;
+            case GAME_LOST:
+                break;
+            case LEVEL_CLEARED:
+
+                break;
         }
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
         c.drawText("Score: " + score, 10, 40, scoreTextPaint);
+        c.drawText("Balls: " + level.ballsRemaining, width - 150, 40, scoreTextPaint);
         c.drawText("<", 50, height - 125, buttonTextPaint);
         c.drawText(">", width - 140, height - 125, buttonTextPaint);
-        if (gameState == GAME_IN_PLAY || gameState == GAME_PAUSED) c.drawText("||", (width / 2) - 24, height - 165, middleButtonTextPaint);
-        if (gameState == NEW_GAME || gameState == GAME_RESTARTING) {
+        if (gameState == GAME_LOST) c.drawText("GAME LOST", (width / 2) - 130, height - 400, gameLostTextPaint);
+        if (gameState == LEVEL_CLEARED) c.drawText("LEVEL CLEARED", (width / 2) - 170, height - 400, gameLostTextPaint);
+        if (showMultiplier) {
+            c.drawText("X" + multiplier, width / 2, 40, multiplierTextPaint);
+        }
+        if (gameState == GAME_IN_PLAY || gameState == GAME_PAUSED || gameState == GAME_LOST || gameState == LEVEL_CLEARED) c.drawText("||", (width / 2) - 24, height - 165, middleButtonTextPaint);
+        if (gameState == GAME_READY || gameState == GAME_RESTARTING) {
             c.drawText("^", (width / 2) - 20, height - 170, middleButtonTextPaint);
             c.drawText("^", (width / 2) - 20, height - 130, middleButtonTextPaint);
         }
@@ -408,7 +463,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 goRight = false;
                 return true;
             case KeyEvent.KEYCODE_SPACE:
-                if (gameState == NEW_GAME || gameState == GAME_RESTARTING) {
+                if (gameState == GAME_READY || gameState == GAME_RESTARTING) {
                     gameState = GAME_IN_PLAY;
                     ball.launchBall();
                 }
@@ -587,7 +642,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 }
                 return true;
             case GAME_RESTARTING:
-            case NEW_GAME:
+            case GAME_READY:
                 if (e.getAction() == MotionEvent.ACTION_MOVE) {
                     try {
                         if (!controls.isLeftButton((int) e.getX(), (int) e.getY()) && goLeft && e.getX(1) < 0) {
