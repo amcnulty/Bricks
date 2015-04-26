@@ -38,14 +38,23 @@ public class Bricks extends ActionBarActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch (item.getItemId()) {
+            case R.id.reset_game:
+                mBricksView.resetGame();
+                mBricksView.level.resetLevel();
+                return true;
+            case R.id.stop_music:
+                mBricksView.level.muteMusic();
+                return true;
+            case R.id.play_music:
+                mBricksView.level.unMuteMusic();
+                return true;
+            case R.id.next_track:
+                Log.v(null, "Change Tracks Not Working!");
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
-
-        return super.onOptionsItemSelected(item);
     }
 
     /**
@@ -71,7 +80,7 @@ public class Bricks extends ActionBarActivity {
 
     @Override
     public void onStop() {
-        mBricksView.gameState = mBricksView.GAME_PAUSED;
+        if (mBricksView.gameState != mBricksView.GAME_READY) mBricksView.gameState = mBricksView.GAME_PAUSED;
         super.onStop();
         Log.v("__________onStop", "Program is stopped");
     }

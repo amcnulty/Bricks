@@ -44,7 +44,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     private boolean running = false;
 
     // Various states the game can be in.
-    private static final int GAME_READY = 1;
+    public static final int GAME_READY = 1;
     private static final int GAME_IN_PLAY = 2;
     public static final int GAME_PAUSED = 3;
     public static final int GAME_LOST = 4;
@@ -148,7 +148,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         setFocusable(true);
         setFocusableInTouchMode(true);
         scoreTextPaint = new Paint();
-        scoreTextPaint.setTextSize(40);
+        scoreTextPaint.setTextSize(37);
         scoreTextPaint.setColor(0xff888888);
         buttonTextPaint = new Paint();
         buttonTextPaint.setColor(0xff000000);
@@ -157,7 +157,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         middleButtonTextPaint.setColor(0xff000000);
         middleButtonTextPaint.setTextSize(90);
         multiplierTextPaint = new Paint();
-        multiplierTextPaint.setTextSize(40);
+        multiplierTextPaint.setTextSize(37);
         multiplierTextPaint.setColor(0xffFFFD01);
         gameLostTextPaint = new Paint();
         gameLostTextPaint.setTextSize(50);
@@ -288,7 +288,7 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
     }
 
     public void resetGame() {
-        gameState = GAME_RESTARTING;
+        gameState = GAME_READY;
         showMultiplier = false;
     }
 
@@ -350,7 +350,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                 break;
             case GAME_PAUSED:
                 // this is where we will update a fragment that has a view and buttons asking about the game being paused.
-
                 break;
             case GAME_LOST:
                 if (System.currentTimeMillis() > messageTimer + 3000) {
@@ -410,14 +409,14 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         }
         bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
         c.drawBitmap(bitmap, 0, 0, null);
-        c.drawText("Score: " + score, 10, 40, scoreTextPaint);
-        c.drawText("Balls: " + level.ballsRemaining, width - 150, 40, scoreTextPaint);
+        c.drawText("Score: " + score, 5, 40, scoreTextPaint);
+        c.drawText("Balls: " + level.ballsRemaining, width - 140, 40, scoreTextPaint);
         c.drawText("<", 50, height - 125, buttonTextPaint);
         c.drawText(">", width - 140, height - 125, buttonTextPaint);
         if (gameState == GAME_LOST) c.drawText("GAME LOST", (width / 2) - 130, height - 400, gameLostTextPaint);
         if (gameState == LEVEL_CLEARED) c.drawText("LEVEL CLEARED", (width / 2) - 170, height - 400, gameLostTextPaint);
         if (showMultiplier) {
-            c.drawText("X" + multiplier, width / 2, 40, multiplierTextPaint);
+            c.drawText("X" + multiplier, width - 258, 40, multiplierTextPaint);
         }
         if (gameState == GAME_IN_PLAY || gameState == GAME_PAUSED || gameState == GAME_LOST || gameState == LEVEL_CLEARED) c.drawText("||", (width / 2) - 24, height - 165, middleButtonTextPaint);
         if (gameState == GAME_READY || gameState == GAME_RESTARTING) {
@@ -512,7 +511,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
         switch (gameState) {
             case GAME_IN_PLAY:
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                    Log.v("_______onTouchEvent", "X: " + e.getX() + " Y: " + e.getY());
                     if (controls.isLeftButton((int)e.getX(), (int)e.getY())) {
                         leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
                         leftButton = true;
@@ -532,7 +530,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
-                    Log.v("_______onTouchEvent", "ACTION POINTER DOWN. X: " + e.getX(1) + " Y: " + e.getY(1));
                     switch (e.getActionIndex()) {
                         case 0:
                             if (controls.isLeftButton((int) e.getX(), (int) e.getY())) {
@@ -579,7 +576,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getActionMasked() == MotionEvent.ACTION_POINTER_UP) {
-                    Log.v("_______onTouchEvent","Action Index: " + e.getActionIndex() + " ACTION POINTER UP. X: " + e.getX(1) + " Y: " + e.getY(1));
                     switch (e.getActionIndex()) {
                         case 0:
                             if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
@@ -629,7 +625,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
-                    Log.v("_______onTouchEvent", "X: " + e.getX() + " Y: " + e.getY());
                     leftButton = false;
                     rightButton = false;
                     leftButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
@@ -664,7 +659,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                    Log.v("_______onTouchEvent", "ACTION DOWN. X: " + e.getX() + " Y: " + e.getY());
                     if (controls.isLeftButton((int)e.getX(), (int)e.getY())) {
                         leftButtonColor = DIRECTIONAL_BUTTON_COLOR_DOWN;
                         leftButton = true;
@@ -682,7 +676,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
-                    Log.v("_______onTouchEvent", "ACTION POINTER DOWN. X: " + e.getX(1) + " Y: " + e.getY(1));
                     switch (e.getActionIndex()) {
                         case 0:
                             if (controls.isLeftButton((int) e.getX(), (int) e.getY())) {
@@ -729,7 +722,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getActionMasked() == MotionEvent.ACTION_POINTER_UP) {
-                    Log.v("_______onTouchEvent","Action Index: " + e.getActionIndex() + " ACTION POINTER UP. X: " + e.getX(1) + " Y: " + e.getY(1));
                     switch (e.getActionIndex()) {
                         case 0:
                             if (controls.isMiddleButton((int) e.getX(), (int) e.getY())) {
@@ -779,7 +771,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     }
                 }
                 if (e.getAction() == MotionEvent.ACTION_UP) {
-                    Log.v("_______onTouchEvent", "ACTION UP. X: " + e.getX() + " Y: " + e.getY());
                     if (controls.isMiddleButton((int)e.getX(), (int)e.getY())) {
                         gameState = GAME_IN_PLAY;
                         ball.launchBall();
@@ -790,7 +781,6 @@ class BricksView extends SurfaceView implements SurfaceHolder.Callback, Runnable
                     rightButtonColor = DIRECTIONAL_BUTTON_COLOR_UP;
                     middleButtonColor = MIDDLE_BUTTON_COLOR_UP;
                 }
-                Log.v("_______onTouchEvent", "rightButton: " + rightButton + " leftButton" + leftButton);
                 return true;
             case GAME_PAUSED:
                 if (e.getAction() == MotionEvent.ACTION_DOWN) {

@@ -5,9 +5,13 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
+import android.net.Uri;
 import android.os.Build;
+import android.util.Log;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Created by Aaron on 3/30/2015.
@@ -45,16 +49,21 @@ public class Level {
     // Handle for BricksView
     BricksView view;
 
+    // Random class
+    Random random;
+
     // The game paddle.
     Paddle paddle;
 
     private ArrayList<Block> blocks = new ArrayList<>();
+    private ArrayList<long[]> multipliers = new ArrayList<>();
 
     public Level(int width, int height, Context context, BricksView view) {
         this.context = context;
         this.width = width;
         this.height = height;
         this.view = view;
+        random = new Random();
         ballsRemaining = 3;
         paddle = new Paddle(width, height, this);
         addBlocks();
@@ -65,13 +74,13 @@ public class Level {
         else {
             soundPool = new SoundPool(10, AudioManager.STREAM_MUSIC, 1);
         }
+        mediaPlayer = MediaPlayer.create(context, R.raw.classical_a_minor);
         startMusic();
         brickBreakId = soundPool.load(context, R.raw.brickbreak, 1);
         wallBounceId = soundPool.load(context, R.raw.wallbounce, 1);
     }
 
     public void startMusic() {
-        mediaPlayer = MediaPlayer.create(context, R.raw.classical_a_minor);
         mediaPlayer.setLooping(true);
         mediaPlayer.start();
     }
@@ -87,6 +96,27 @@ public class Level {
 
     public void resumeMusic() {
         mediaPlayer.start();
+    }
+
+    public void muteMusic() {
+        mediaPlayer.setVolume(0, 0);
+    }
+
+    public void unMuteMusic() {
+        mediaPlayer.setVolume(1, 1);
+    }
+
+    // Currently not working!
+    public void changeTrack() {
+        mediaPlayer.reset();
+        try {
+            mediaPlayer.setDataSource(context, Uri.parse("android.resource://com.monkeystomp.aaron/" + R.raw.classical_beethoven_pathetique));
+            mediaPlayer.prepareAsync();
+            startMusic();
+        }
+        catch (IOException e) {
+            Log.v(null, "File Not Found!");
+        }
     }
 
     private void addBlocks() {
@@ -150,41 +180,20 @@ public class Level {
         score += blockPointValue * scoreMultiplier;
     }
 
-    public void startMultiplier(int multiplier) {
-        if (multiplier > 1 && multiplier >= scoreMultiplier) {
+    public void increaseMultiplier(int multiplier) {
+        if (multiplier > 1) {
             showMultiplier = true;
+            multipliers.add(new long[]{multiplier, System.currentTimeMillis()});
             multiplierTimer = System.currentTimeMillis();
-            scoreMultiplier = multiplier;
+            scoreMultiplier *= multiplier;
         }
     }
 
-    public void lostBall() {
-        showMultiplier = false;
-        scoreMultiplier = 1;
-        ballsRemaining--;
-        if (ballsRemaining == 0) {
-            view.gameState = view.GAME_LOST;
-            view.startEndgameMessage();
-        }
-    }
-
-    public void resetLevel() {
-        ballsRemaining = 3;
-        paddle.x = (width / 2);
-        paddle.y = height - 270;
-        score = 0;
-        stopMusic();
-        startMusic();
-        for (int i = 0; i < blocks.size(); i++) {
-            blocks.get(i).broken = false;
-        }
-    }
-
-    public void checkForVictory() {
-        for (int i = 0; i < blocks.size(); i++) {
-            if (!blocks.get(i).broken) break;
-            if (i == blocks.size() - 1) {
-                levelCleared = true;
+    public void setScoreMultiplier() {
+        for (int i = 0; i < multipliers.size(); i++) {
+            if (System.currentTimeMillis() > multipliers.get(i)[1] + 8000) {
+                scoreMultiplier /= multipliers.get(i)[0];
+                multipliers.remove(i);
             }
         }
     }
@@ -206,9 +215,56 @@ public class Level {
         }
     }
 
+    public void lostBall() {
+        showMultiplier = false;
+        scoreMultiplier = 1;
+        multipliers.clear();
+        ballsRemaining--;
+        if (ballsRemaining == 0) {
+            view.gameState = view.GAME_LOST;
+            view.startEndgameMessage();
+        }
+    }
+
+    public void resetLevel() {
+        ballsRemaining = 3;
+        paddle.x = (width / 2);
+        paddle.y = height - 270;
+        score = 0;
+        scoreMultiplier = 1;
+        multipliers.clear();
+        showMultiplier = false;
+        stopMusic();
+        startMusic();
+        for (int i = 0; i < blocks.size(); i++) {
+            blocks.get(i).broken = false;
+            if (blocks.get(i).blockType == Block.BANANA_BLOCK) {
+                Log.v("_____________resetLevel", "THIS IS A BANANA BLOCK CHANGING TO A PLAIN BLOCK. INDEX #: " + i);
+                blocks.get(i).setBlockType(Block.PLAIN_BLOCK);
+            }
+            if (blocks.get(i).blockType == Block.PLAIN_BLOCK) {
+                Log.v("_____________resetLevel", "THIS IS A PLAIN BLOCK. INDEX #: " + i);
+                if (random.nextInt(9) == 0) {
+                    Log.v("_____________resetLevel", "THIS IS A PLAIN BLOCK TURNING INTO A BANANA BLOCK. INDEX #: " + i);
+                    blocks.get(i).setBlockType(Block.BANANA_BLOCK);
+                }
+            }
+        }
+    }
+
+    public void checkForVictory() {
+        for (int i = 0; i < blocks.size(); i++) {
+            if (!blocks.get(i).broken) break;
+            if (i == blocks.size() - 1) {
+                levelCleared = true;
+            }
+        }
+    }
+
     public void update(long lastTime, BricksView view) {
         paddle.update(lastTime, view);
         view.updateScore(score);
+        setScoreMultiplier();
         if (System.currentTimeMillis() > multiplierTimer + 8000 && showMultiplier) {
             showMultiplier = false;
             scoreMultiplier = 1;
